@@ -13,7 +13,7 @@ stages{
 
         steps{
 
-            git branch: 'feature/2025.05.27', url: 'https://github.com/srinfotech7358/Petclinic.git'
+            git branch: 'main', url: 'https://github.com/srinfotech7358/Petclinic.git'
         }
     }
 
