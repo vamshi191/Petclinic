@@ -1,102 +1,55 @@
-
 pipeline{
-
-    tools{
-
-        maven 'Maven'
-    }
+    
 agent any
 
+tools{
+
+    maven 'Maven'
+}
+
 stages{
-
-    stage('Clone'){
-
+    stage('Clone The Project'){
         steps{
-
-            git branch: 'main', url: 'https://github.com/srinfotech7358/Petclinic.git'
+            git branch: 'main', url: 'https://github.com/srinfotechbatch2/Petclinic.git'
         }
     }
-
-
     
-     stage('Build') {
-            steps {
-               bat 'mvn clean install'
-            }
+    stage('Build'){
+        steps{
+             bat 'mvn clean install'
         }
+    }
+     stage('Test'){
+        steps{
+             bat 'mvn test'
+        }
+    }
+     stage('Generated the test reports'){
+        steps{
+             junit 'target/surefire-reports/*.xml'
+        }
+    }
+     stage('published the Artifacts'){
+        steps{
+            archiveArtifacts artifacts: 'target/*.war', followSymlinks: false
+        }
+    }
 
-         stage('Test Cases') {
-            steps {
-               bat 'mvn test'
-            }
+    stage('SonarQube Analysis'){
+        steps{
+        bat 'mvn package'
+      bat '''mvn sonar:sonar \
+  -Dsonar.projectKey=spring-petclinic \
+  -Dsonar.projectName='spring-petclinic' \
+  -Dsonar.host.url=http://localhost:9000 \
+  -Dsonar.token=sqp_b4f05b06814df65b8d3f1a467f3ed604e2dadb03'''
         }
-        
-          stage('package') {
-            steps {
-               bat 'mvn package'
-            }
+    }
+    
+    stage('Deploy to Tomcat Server'){
+        steps{
+            deploy adapters: [tomcat9(alternativeDeploymentContext: '', credentialsId: 'tomcatcredential', path: '', url: 'http://localhost:8080')], contextPath: 'SRInfotechSpringpetclinic', war: 'target/*.war'
         }
-
-         stage('Archive the Artifacts') {
-            steps {
-               archiveArtifacts artifacts: 'target/*.war', followSymlinks: false
-            }
-        }
- stage('Sonarqube Analysis') {
-            steps {
-               
-               bat 'mvn package'
-              bat '''mvn sonar:sonar \
-             -Dsonar.projectKey=spring-petclinic \
-             -Dsonar.projectName='spring-petclinic' \
-            -Dsonar.host.url=http://localhost:9000 \
-            -Dsonar.token=sqp_96cf5222ab632b69c14baa5590210a7125185d5a'''
-            }
-        }
-
-stage ('Artifactory Server'){
-    steps {
-       rtServer (
-         id: "Artifactory",
-         url: 'http://localhost:8081/artifactory',
-         username: 'admin',
-          password: 'password',
-          bypassProxy: true,
-           timeout: 300
-                )
     }
 }
-
-stage('Upload'){
-    steps{
-        rtUpload (
-         serverId:"Artifactory" ,
-          spec: '''{
-           "files": [
-              {
-              "pattern": "*.war",
-              "target": "srinfotech"
-              }
-                    ]
-                   }''',
-                )
-    }
-}
-stage ('Publish build info') {
-    steps {
-        rtPublishBuildInfo (
-            serverId: "Artifactory"
-        )
-    }
-}
-
-
- stage('Deploy Application into Tomcat Server') {
-            steps {
-               deploy adapters: [tomcat9(alternativeDeploymentContext: '', credentialsId: 'NewTomcat', path: '', url: 'http://localhost:8080/')], contextPath: 'SRIN solutions PVT LTD', war: '**/*.war'
-            }
-        }
-
-}
-
 }
